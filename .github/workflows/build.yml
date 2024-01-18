@@ -1,3 +1,5 @@
+name: EAS Preview
+
 on:
   pull_request:
     types: [opened, synchronize, reopened]
