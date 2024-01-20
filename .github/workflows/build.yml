@@ -1,0 +1,43 @@
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    env:
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }} 
+
+    steps:
+      - name: 🏗 Setup repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: 🏗 Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      - name: 🏗 Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📦 Install dependencies
+        run: npm ci
+      
+      - run: git log --oneline --no-merges
+
+      - name: Get Head Commit Message
+        id: commit_message
+        run: |
+          echo "message=$(git log --no-merges --pretty=format:%s -1)" >> "$GITHUB_OUTPUT"
+
+
+      - name: 🚀 Create preview
+        uses: expo/expo-github-action/preview@v8
+        with:
+          # `github.event.pull_request.head.ref` is only available on `pull_request` triggers.
+          # Use your own, or keep the automatically infered branch name from `--auto`, when using different triggers.
+          command: eas update --branch ${{ env.BRANCH_NAME }} --message "${{ steps.commit_message.outputs.message }}" --platform=ios
